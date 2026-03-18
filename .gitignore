@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+backend/venv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Data directories (crawled/uploaded content)
+backend/data/
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Next.js
+frontend/.next/
+frontend/out/
+
+# Nuxt
+frontend-vue/.nuxt/
+frontend-vue/.output/
+frontend-vue/.data/
+
+# Claude
+.claude/
