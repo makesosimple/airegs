@@ -39,3 +39,10 @@ frontend-vue/.data/
 
 # Claude
 .claude/
+
+# Backups (large files)
+backups/
+
+# Test artifacts
+test-results/
+tests/*.png
