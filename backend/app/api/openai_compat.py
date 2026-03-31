@@ -58,18 +58,39 @@ def _extract_question_and_history(messages: list[ChatCompletionMessage]) -> tupl
 
 
 def _build_search_query(question: str, history: list[dict]) -> str:
-    """Kısa takip soruları için bağlam ekler."""
-    if history and len(question.split()) < 8:
-        recent_user = ""
-        recent_assistant = ""
+    """Takip soruları için son konuşma bağlamından arama sorgusu oluşturur."""
+    if not history:
+        return question
+
+    # Kısa soru tespiti: zamir, kısa ifade, bağlam gerektiren soru
+    short_indicators = len(question.split()) < 12
+    context_words = ["bu", "şu", "o", "bunun", "onun", "peki", "ayrıca", "ek olarak",
+                     "devam", "nedir", "kaçtır", "nasıl", "ne zaman", "hangi",
+                     "bununla", "bunlar", "onlar", "yukarıdaki", "bahsettiğin"]
+    has_context_ref = any(w in question.lower() for w in context_words)
+
+    if short_indicators or has_context_ref:
+        # Son 3 user+assistant çiftinden bağlam topla (en yeni önce)
+        recent_context_parts = []
+        count = 0
         for msg in reversed(history):
-            if msg["role"] == "assistant" and not recent_assistant:
-                recent_assistant = msg["content"].split(".")[0][:100]
-            elif msg["role"] == "user" and not recent_user:
-                recent_user = msg["content"]
-            if recent_user and recent_assistant:
+            if count >= 6:  # max 3 çift (6 mesaj)
                 break
-        return f"{recent_user} {recent_assistant} {question}".strip()
+            if msg["role"] == "user":
+                recent_context_parts.append(msg["content"][:150])
+            elif msg["role"] == "assistant":
+                # Assistant cevabından anahtar cümleleri al
+                sentences = msg["content"].split(".")
+                key_sentences = [s.strip() for s in sentences[:2] if s.strip()]
+                recent_context_parts.append(" ".join(key_sentences)[:150])
+            count += 1
+
+        recent_context_parts.reverse()
+        context_str = " ".join(recent_context_parts)
+        query = f"{context_str} {question}".strip()
+        # Çok uzun olmasın, embedding modeli için kısalt
+        return query[:500]
+
     return question
 
 

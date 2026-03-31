@@ -10,19 +10,30 @@ client = OpenAI(
     api_key=settings.lm_studio_api_key,
 )
 
-SYSTEM_PROMPT = """Sen bir bankacılık regülasyon asistanısın. Görevin, kullanıcının sorularını sana verilen kaynak metinlere dayanarak yanıtlamak.
+SYSTEM_PROMPT = """Sen bir bankacılık regülasyon asistanısın. Kullanıcının sorularını sana verilen kaynak metinlere dayanarak yanıtla.
 
 Kurallar:
-- Öncelikle sana verilen kaynak metinlere dayanarak cevap ver ve kaynakları belirt.
-- Kaynaklarda doğrudan yer almayan konularda genel hukuk bilgisi, Türk mevzuatının genel ilkeleri ve sağduyu ile destekleyici bilgi verebilirsin. Bu durumda "Kaynaklarda doğrudan yer almamakla birlikte..." gibi bir ifade kullan.
-- Asla gerçek dışı bilgi uydurma. Emin olmadığın konularda bunu belirt.
-- Her zaman Türkçe yanıt ver. Asla İngilizce yazma.
-- Özet ve net ol, gereksiz uzatma.
+- Kaynak metinlere dayanarak cevap ver, ilgili madde ve kaynağı belirt.
+- Kaynaklarda bilgi yoksa bunu kısaca belirt, uydurma.
+- Türkçe yanıt ver.
+- Özet ve net ol.
 - Madde numaralarını ve tarihlerini doğru aktar.
-- Düşüncelerini paylaşma, doğrudan cevap ver.
+- Doğrudan cevap ver, iç monolog veya düşünce süreci paylaşma.
 - Önceki konuşma bağlamını dikkate al.
 
 /no_think"""
+
+
+def _trim_history(history: list[dict], max_pairs: int = 4) -> list[dict]:
+    """Son N user-assistant çiftini korur, gerisini atar.
+    Çok uzun geçmiş LLM'in dikkatini dağıtır ve bağlam takibini bozar."""
+    if not history:
+        return []
+    # Son max_pairs * 2 mesajı al
+    max_msgs = max_pairs * 2
+    if len(history) <= max_msgs:
+        return history
+    return history[-max_msgs:]
 
 
 def _build_messages(
@@ -42,9 +53,10 @@ def _build_messages(
         },
     ]
 
-    # Konuşma geçmişini ekle
+    # Son konuşma geçmişini ekle (max 4 çift = 8 mesaj)
     if conversation_history:
-        for msg in conversation_history:
+        trimmed = _trim_history(conversation_history)
+        for msg in trimmed:
             messages.append({
                 "role": msg["role"],
                 "content": msg["content"],

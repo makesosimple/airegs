@@ -21,8 +21,11 @@ services:
       - OPENAI_API_BASE_URL=http://host.docker.internal:8000/v1
       - OPENAI_API_KEY=airegs
       - WEBUI_AUTH=true
+      - ENABLE_SIGNUP=true
+      - WEBUI_NAME=AIRegs - Regülasyon Asistanı
       - DEFAULT_LOCALE=tr-TR
       - DEFAULT_USER_ROLE=admin
+      - 'DEFAULT_PROMPT_SUGGESTIONS=[{"title":["Sermaye yeterliliği","oranları hakkında bilgi ver"]},{"title":["BDDK düzenlemeleri","nelerdir, özetle"]},{"title":["Risk yönetimi","çerçevesini açıkla"]},{"title":["Bankacılık mevzuatı","son değişiklikler neler"]},{"title":["Kredi sınırlamaları","hakkında ne biliyorsun"]},{"title":["İç denetim","gereklilikleri nelerdir"]}]'
       - RAG_EMBEDDING_ENGINE=
       - ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION=false
       - RAG_EMBEDDING_MODEL=
