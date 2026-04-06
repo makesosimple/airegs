@@ -8,6 +8,7 @@ class DocumentSource(str, Enum):
     SPK = "SPK"
     TCMB = "TCMB"
     INTERNAL = "Kurum İçi"
+    ITO = "İTO"
     OTHER = "Diğer"
 
 
@@ -16,6 +17,10 @@ class DocumentType(str, Enum):
     YONETMELIK = "Yönetmelik"
     DUYURU = "Duyuru"
     PROSEDUR = "Prosedür"
+    HIZMET = "Hizmet"
+    SSS = "SSS"
+    KURUMSAL = "Kurumsal"
+    FUAR = "Fuar"
     OTHER = "Diğer"
 
 

@@ -1,0 +1,31 @@
+## ITO Demo instance — docker compose -f docker-compose.yml -f docker-compose.ito.yml up -d
+services:
+  open-webui-ito:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ito-webui
+    ports:
+      - "3081:8080"
+    volumes:
+      - open_webui_ito_data:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OPENAI_API_BASE_URL=http://host.docker.internal:8001/v1
+      - OPENAI_API_KEY=ito-demo
+      - WEBUI_AUTH=true
+      - ENABLE_SIGNUP=true
+      - WEBUI_NAME=İTO Asistan - İstanbul Ticaret Odası
+      - DEFAULT_LOCALE=tr-TR
+      - DEFAULT_USER_ROLE=admin
+      - 'DEFAULT_PROMPT_SUGGESTIONS=[{"title":["Ticaret sicili","işlemleri hakkında bilgi ver"]},{"title":["İhracat belgeleri","hangi ülkeye ne düzenlenir"]},{"title":["A.TR dolaşım belgesi","nedir, nasıl alınır"]},{"title":["KOSGEB destekleri","nelerdir, nasıl başvurulur"]},{"title":["Kapasite raporu","nasıl alınır"]},{"title":["Limited şirket","kuruluş süreci nasıl"]},{"title":["Yatırım teşvikleri","hangi destekler var"]},{"title":["İTO üyelik","hizmetleri nelerdir"]}]'
+      - RAG_EMBEDDING_ENGINE=
+      - ENABLE_RAG_WEB_LOADER_SSL_VERIFICATION=false
+      - RAG_EMBEDDING_MODEL=
+      - ENABLE_RAG_LOCAL_WEB_FETCH=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    depends_on:
+      - qdrant
+
+volumes:
+  open_webui_ito_data:

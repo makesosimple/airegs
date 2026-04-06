@@ -57,7 +57,7 @@ async def chat(request: ChatRequest):
     doc_type_filter = request.doc_type_filter.value if request.doc_type_filter else None
 
     results = search_similar(
-        query=request.question, top_k=5,
+        query=request.question, top_k=10,
         source_filter=source_filter, doc_type_filter=doc_type_filter,
     )
 
@@ -104,7 +104,7 @@ async def chat_stream(request: Request):
                 break
         search_query = f"{recent_user} {recent_assistant} {question}".strip()
 
-    results = search_similar(query=search_query, top_k=5)
+    results = search_similar(query=search_query, top_k=10)
 
     def text_stream():
         if not results:

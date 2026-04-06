@@ -11,6 +11,7 @@ from typing import Any
 from pydantic import BaseModel
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse, JSONResponse
+from app.core.config import settings
 from app.services.vector_store import search_similar
 from app.services.llm import generate_answer, generate_answer_stream
 
@@ -144,7 +145,7 @@ async def chat_completions(request: ChatCompletionRequest):
     # RAG: vektör araması
     search_query = _build_search_query(question, history)
     logger.info(f"[OpenAI Compat] search_query='{search_query[:100]}'")
-    results = search_similar(query=search_query, top_k=5)
+    results = search_similar(query=search_query, top_k=settings.rag_top_k)
     logger.info(f"[OpenAI Compat] RAG results={len(results)} chunks found")
 
     completion_id = f"chatcmpl-{uuid.uuid4().hex[:8]}"
@@ -219,15 +220,16 @@ async def chat_completions(request: ChatCompletionRequest):
 @router.get("/models")
 async def list_models():
     """Open WebUI model listesi için."""
+    model_id = settings.collection_name.replace("_", "-") + "-rag"
     return {
         "object": "list",
         "data": [
             {
-                "id": "airegs-rag",
+                "id": model_id,
                 "object": "model",
                 "created": 1700000000,
-                "owned_by": "airegs",
-                "name": "AIRegs RAG Asistanı",
+                "owned_by": settings.app_name.lower(),
+                "name": settings.app_name,
             },
         ],
     }
