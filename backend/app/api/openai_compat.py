@@ -223,7 +223,7 @@ async def chat_completions(request: ChatCompletionRequest):
             yield f"data: {json.dumps(first, ensure_ascii=False)}\n\n"
 
             think_state = {"in_think": False}
-            for token in generate_answer_stream(question, results, history):
+            for token in generate_answer_stream(question, results, history, model_name=model):
                 text = _filter_think_tags(token, think_state)
                 if text:
                     chunk = {
@@ -245,7 +245,7 @@ async def chat_completions(request: ChatCompletionRequest):
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
     # Non-streaming
-    answer = generate_answer(question, results, history)
+    answer = generate_answer(question, results, history, model_name=model)
     return JSONResponse({
         "id": completion_id, "object": "chat.completion",
         "created": created, "model": model,
@@ -257,16 +257,22 @@ async def chat_completions(request: ChatCompletionRequest):
 @router.get("/models")
 async def list_models():
     """Open WebUI model listesi için."""
-    model_id = settings.collection_name.replace("_", "-") + "-rag"
     return {
         "object": "list",
         "data": [
             {
-                "id": model_id,
+                "id": "ito-docs-rag",
                 "object": "model",
                 "created": 1700000000,
                 "owned_by": settings.app_name.lower(),
-                "name": settings.app_name,
+                "name": f"{settings.app_name} (Claude Haiku)",
+            },
+            {
+                "id": "ito-qwen-rag",
+                "object": "model",
+                "created": 1700000000,
+                "owned_by": settings.app_name.lower(),
+                "name": f"{settings.app_name} (Lokal Qwen3-4B)",
             },
         ],
     }

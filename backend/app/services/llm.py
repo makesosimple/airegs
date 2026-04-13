@@ -1,24 +1,55 @@
+from __future__ import annotations
 import re
-from typing import Generator
+from typing import Generator, NamedTuple
 
 from openai import OpenAI
 from app.core.config import settings
 
 
-client = OpenAI(
-    base_url=settings.effective_llm_base_url,
-    api_key=settings.effective_llm_api_key,
-)
+class LLMProfile(NamedTuple):
+    base_url: str
+    api_key: str
+    model: str
+
+
+# Ön tanımlı profiller — model adına göre backend seçer
+LLM_PROFILES: dict[str, LLMProfile] = {
+    "ito-docs-rag": LLMProfile(
+        base_url=settings.effective_llm_base_url,
+        api_key=settings.effective_llm_api_key,
+        model=settings.llm_model,
+    ),
+    "ito-qwen-rag": LLMProfile(
+        base_url="http://127.0.0.1:11434/v1",
+        api_key="ollama",
+        model="qwen3:4b",
+    ),
+}
+
+
+def get_profile(model_name: str) -> LLMProfile:
+    """Model adına göre doğru LLM profilini döner, yoksa default."""
+    return LLM_PROFILES.get(model_name, LLM_PROFILES["ito-docs-rag"])
+
+
+# Her profil için bir client instance cache
+_clients: dict[str, OpenAI] = {}
+
+
+def _get_client(profile: LLMProfile) -> OpenAI:
+    key = profile.base_url
+    if key not in _clients:
+        _clients[key] = OpenAI(base_url=profile.base_url, api_key=profile.api_key)
+    return _clients[key]
+
 
 SYSTEM_PROMPT = settings.system_prompt
 
 
 def _trim_history(history: list[dict], max_pairs: int = 4) -> list[dict]:
-    """Son N user-assistant çiftini korur, gerisini atar.
-    Çok uzun geçmiş LLM'in dikkatini dağıtır ve bağlam takibini bozar."""
+    """Son N user-assistant çiftini korur, gerisini atar."""
     if not history:
         return []
-    # Son max_pairs * 2 mesajı al
     max_msgs = max_pairs * 2
     if len(history) <= max_msgs:
         return history
@@ -42,7 +73,6 @@ def _build_messages(
         },
     ]
 
-    # Son konuşma geçmişini ekle (max 4 çift = 8 mesaj)
     if conversation_history:
         trimmed = _trim_history(conversation_history)
         for msg in trimmed:
@@ -51,9 +81,7 @@ def _build_messages(
                 "content": msg["content"],
             })
 
-    # Son soruyu ekle
     messages.append({"role": "user", "content": question})
-
     return messages
 
 
@@ -61,10 +89,12 @@ def generate_answer(
     question: str,
     context_chunks: list[dict],
     conversation_history: list[dict] | None = None,
+    model_name: str = "ito-docs-rag",
 ) -> str:
-    """Kaynak metinlerle birlikte soruyu LLM'e gönderir."""
+    profile = get_profile(model_name)
+    client = _get_client(profile)
     response = client.chat.completions.create(
-        model=settings.llm_model,
+        model=profile.model,
         messages=_build_messages(question, context_chunks, conversation_history),
         temperature=0.1,
         max_tokens=2048,
@@ -78,10 +108,12 @@ def generate_answer_stream(
     question: str,
     context_chunks: list[dict],
     conversation_history: list[dict] | None = None,
+    model_name: str = "ito-docs-rag",
 ) -> Generator[str, None, None]:
-    """Kaynak metinlerle birlikte soruyu LLM'e gönderir, streaming olarak."""
+    profile = get_profile(model_name)
+    client = _get_client(profile)
     stream = client.chat.completions.create(
-        model=settings.llm_model,
+        model=profile.model,
         messages=_build_messages(question, context_chunks, conversation_history),
         temperature=0.1,
         max_tokens=2048,
