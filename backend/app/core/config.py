@@ -16,7 +16,7 @@ Kurallar:
 
 /no_think""",
 
-    "ITO Asistan": """Sen İstanbul Ticaret Odası (İTO) asistanısın. Kullanıcının sorularını sana verilen kaynak metinlere dayanarak yanıtla.
+    "İTO Asistan": """Sen İstanbul Ticaret Odası (İTO) asistanısın. Kullanıcının sorularını sana verilen kaynak metinlere dayanarak yanıtla.
 
 Kurallar:
 - Kaynak metinlere dayanarak cevap ver, ilgili hizmet veya belgeyi belirt.
@@ -25,17 +25,29 @@ Kurallar:
 - Özet ve net ol.
 - Ticaret sicili, ihracat belgeleri, teşvikler, üyelik hizmetleri gibi konularda rehberlik et.
 - Doğrudan cevap ver, iç monolog veya düşünce süreci paylaşma.
-- Önceki konuşma bağlamını dikkate al.
-
-/no_think""",
+- Önceki konuşma bağlamını dikkate al.""",
 }
 
 
 class Settings(BaseSettings):
     lm_studio_base_url: str = "http://localhost:1234/v1"
     lm_studio_api_key: str = "lm-studio"
+    # LLM için ayrı endpoint (boşsa lm_studio_base_url kullanılır)
+    llm_base_url: str = ""
+    llm_api_key: str = ""
     llm_model: str = "qwen3-14b"
     embedding_model: str = "text-embedding-nomic-embed-text-v1.5"
+    # Embedding backend: 'openai' (LM Studio / API) veya 'local' (sentence-transformers)
+    embedding_backend: str = "openai"
+    local_embedding_model: str = "nomic-ai/nomic-embed-text-v1.5"
+
+    @property
+    def effective_llm_base_url(self) -> str:
+        return self.llm_base_url or self.lm_studio_base_url
+
+    @property
+    def effective_llm_api_key(self) -> str:
+        return self.llm_api_key or self.lm_studio_api_key
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
     collection_name: str = "regulations"
