@@ -63,14 +63,21 @@ def _build_search_query(question: str, history: list[dict]) -> str:
     if not history:
         return question
 
-    # Kısa soru tespiti: zamir, kısa ifade, bağlam gerektiren soru
-    short_indicators = len(question.split()) < 12
-    context_words = ["bu", "şu", "o", "bunun", "onun", "peki", "ayrıca", "ek olarak",
-                     "devam", "nedir", "kaçtır", "nasıl", "ne zaman", "hangi",
-                     "bununla", "bunlar", "onlar", "yukarıdaki", "bahsettiğin"]
-    has_context_ref = any(w in question.lower() for w in context_words)
+    # Özel isim / spesifik terim tespit: büyük harfle başlayan 2+ ardışık kelime
+    # varsa soru kendi başına yeterince spesifiktir, geçmişi katma
+    import re
+    proper_noun_match = re.search(r"\b[A-ZÇĞİÖŞÜ][a-zçğıöşü]+(?:\s+[A-ZÇĞİÖŞÜ][a-zçğıöşü]+){1,}", question)
+    if proper_noun_match:
+        return question
 
-    if short_indicators or has_context_ref:
+    # Zamir/bağlam göstergesi yoksa geçmişi katma
+    pronoun_refs = ["bu", "şu", "o ", "bunun", "onun", "bununla", "bunlar",
+                    "onlar", "yukarıdaki", "bahsettiğin", "dediğin", "söylediğin"]
+    has_pronoun = any(w in question.lower() for w in pronoun_refs)
+    # Çok kısa ve zamir içeren sorular bağlam ister
+    very_short = len(question.split()) < 6
+
+    if has_pronoun or very_short:
         # Son 3 user+assistant çiftinden bağlam topla (en yeni önce)
         recent_context_parts = []
         count = 0

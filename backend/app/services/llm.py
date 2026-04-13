@@ -6,8 +6,8 @@ from app.core.config import settings
 
 
 client = OpenAI(
-    base_url=settings.lm_studio_base_url,
-    api_key=settings.lm_studio_api_key,
+    base_url=settings.effective_llm_base_url,
+    api_key=settings.effective_llm_api_key,
 )
 
 SYSTEM_PROMPT = settings.system_prompt
