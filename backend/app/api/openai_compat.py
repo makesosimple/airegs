@@ -58,8 +58,38 @@ def _extract_question_and_history(messages: list[ChatCompletionMessage]) -> tupl
     return question, history
 
 
+def _normalize_query(question: str) -> str:
+    """Türkçe typo'ları düzeltmek ve sorguyu aramaya uygun hale getirmek için LLM rewrite.
+    Çok ucuz bir çağrı (~50 token in/out). Başarısız olursa orijinali döner."""
+    if not question or len(question.strip()) < 2:
+        return question
+    try:
+        from openai import OpenAI
+        from app.core.config import settings
+        client = OpenAI(base_url=settings.effective_llm_base_url, api_key=settings.effective_llm_api_key)
+        resp = client.chat.completions.create(
+            model=settings.llm_model,
+            messages=[
+                {"role": "system", "content": "Sen Türkçe arama sorgusu normalize edicisin. Kullanıcının sorusundaki yazım hatalarını düzelt (örn: aydat→aidat, sikret→sirket), kısaltma/argo varsa aç. Sadece normalize edilmiş sorguyu döndür, başka hiçbir şey yazma."},
+                {"role": "user", "content": question[:300]},
+            ],
+            temperature=0,
+            max_tokens=80,
+        )
+        fixed = resp.choices[0].message.content.strip().strip('"').strip("'")
+        if fixed and len(fixed) < 300:
+            logger.info(f"[Query Rewrite] '{question[:60]}' -> '{fixed[:60]}'")
+            return fixed
+    except Exception as e:
+        logger.warning(f"Query rewrite failed: {e}")
+    return question
+
+
 def _build_search_query(question: str, history: list[dict]) -> str:
     """Takip soruları için son konuşma bağlamından arama sorgusu oluşturur."""
+    # Önce typo/normalize düzelt
+    question = _normalize_query(question)
+
     if not history:
         return question
 
