@@ -22,7 +22,7 @@ LLM_PROFILES: dict[str, LLMProfile] = {
     "ito-qwen-rag": LLMProfile(
         base_url="http://127.0.0.1:11434/v1",
         api_key="ollama",
-        model="qwen3:4b",
+        model="qwen3:1.7b",
     ),
 }
 
