@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     chunk_size: int = 512
     chunk_overlap: int = 50
     rag_top_k: int = 10
+    # Hibrit yeniden sıralama: vektör adayları top_k * factor, terim eşleşme ağırlığı (0 = kapalı)
+    rerank_candidate_factor: int = 16
+    rerank_weight: float = 0.12
 
     # Instance branding
     app_name: str = "AIRegs"

@@ -1,4 +1,6 @@
 from __future__ import annotations
+import re
+
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
@@ -97,15 +99,16 @@ def search_similar(
 
     search_filter = Filter(must=conditions) if conditions else None
 
+    # Hibrit arama: vektör aramasıyla geniş aday havuzu çek, sonra terim eşleşmesiyle yeniden sırala
     results = client.query_points(
         collection_name=settings.collection_name,
         query=query_vector,
         query_filter=search_filter,
-        limit=top_k,
+        limit=top_k * settings.rerank_candidate_factor,
         with_payload=True,
     )
 
-    return [
+    candidates = [
         {
             "text": point.payload["text"],
             "title": point.payload["title"],
@@ -116,6 +119,41 @@ def search_similar(
         }
         for point in results.points
     ]
+    return _rerank(query, candidates)[:top_k]
+
+
+# Aramada anlam taşımayan Türkçe soru/bağlaç kelimeleri
+_STOPWORDS = {
+    "ne", "nedir", "neler", "nelerdir", "kaç", "kaçtır", "nasıl", "hangi", "hangisi", "mi", "mı",
+    "mu", "mü", "midir", "mıdır", "ve", "veya", "ile", "bir", "bu", "şu", "için", "olan", "olarak",
+    "olmalı", "olmalıdır", "gerekir", "gerekiyor", "var", "yok", "da", "de", "ki", "en", "çok",
+    "hakkında", "bilgi", "ver", "açıkla",
+}
+
+
+def _stems(text: str) -> list[str]:
+    """Türkçe-duyarlı küçük harf + 5 harflik kök yaklaşımı (ekleri kabaca atar)."""
+    text = text.replace("İ", "i").replace("I", "ı").lower()
+    words = re.findall(r"[%\w,]+", text)
+    return [w.rstrip(",")[:5] for w in words if len(w) >= 2 and w not in _STOPWORDS]
+
+
+def _rerank(query: str, candidates: list[dict]) -> list[dict]:
+    """Vektör skorunu sorgu terimlerinin chunk'ta geçme oranıyla harmanlar.
+    Unigram kapsama + ardışık terim (bigram) kapsama; ağırlık settings.rerank_weight."""
+    q_stems = _stems(query)
+    if not q_stems or settings.rerank_weight <= 0:
+        return candidates
+    q_bigrams = list(zip(q_stems, q_stems[1:]))
+    for c in candidates:
+        c_stems = _stems(c["title"] + " " + c["text"])
+        c_set = set(c_stems)
+        c_bigrams = set(zip(c_stems, c_stems[1:]))
+        uni = sum(s in c_set for s in q_stems) / len(q_stems)
+        bi = sum(b in c_bigrams for b in q_bigrams) / len(q_bigrams) if q_bigrams else uni
+        c["vector_score"] = c["score"]
+        c["score"] = c["score"] + settings.rerank_weight * (uni + bi) / 2
+    return sorted(candidates, key=lambda c: c["score"], reverse=True)
 
 
 def delete_document(document_id: str):

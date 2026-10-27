@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 import uuid
 from typing import Any
@@ -68,17 +69,23 @@ def _normalize_query(question: str) -> str:
         from openai import OpenAI
         from app.core.config import settings
         client = OpenAI(base_url=settings.effective_llm_base_url, api_key=settings.effective_llm_api_key)
+        user_content = question[:300]
+        # Qwen3 thinking modunu kapat — aksi halde cevap <think> ile başlar ve sorgu bozulur
+        if "qwen3" in settings.llm_model.lower():
+            user_content += " /no_think"
         resp = client.chat.completions.create(
             model=settings.llm_model,
             messages=[
                 {"role": "system", "content": "Sen Türkçe arama sorgusu normalize edicisin. Kullanıcının sorusundaki yazım hatalarını düzelt (örn: aydat→aidat, sikret→sirket), kısaltma/argo varsa aç. Sadece normalize edilmiş sorguyu döndür, başka hiçbir şey yazma."},
-                {"role": "user", "content": question[:300]},
+                {"role": "user", "content": user_content},
             ],
             temperature=0,
             max_tokens=80,
         )
-        fixed = resp.choices[0].message.content.strip().strip('"').strip("'")
-        if fixed and len(fixed) < 300:
+        fixed = re.sub(r"<think>.*?</think>", "", resp.choices[0].message.content or "", flags=re.DOTALL)
+        fixed = fixed.strip().strip('"').strip("'")
+        # Kapanmamış <think> (max_tokens'a takıldı) → güvenilmez, orijinali kullan
+        if fixed and "<think>" not in fixed and len(fixed) < 300:
             logger.info(f"[Query Rewrite] '{question[:60]}' -> '{fixed[:60]}'")
             return fixed
     except Exception as e:
