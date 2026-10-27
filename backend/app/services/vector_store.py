@@ -1,3 +1,4 @@
+from __future__ import annotations
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance,
@@ -57,6 +58,7 @@ def index_document(doc_metadata: dict, chunks: list[str]) -> int:
                     "doc_type": doc_metadata["doc_type"],
                     "date": doc_metadata["date"],
                     "filename": doc_metadata["filename"],
+                    "url": doc_metadata.get("url", ""),
                 },
             )
         )
@@ -109,6 +111,7 @@ def search_similar(
             "title": point.payload["title"],
             "source": point.payload["source"],
             "doc_type": point.payload["doc_type"],
+            "url": point.payload.get("url", ""),
             "score": point.score,
         }
         for point in results.points

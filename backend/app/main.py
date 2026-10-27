@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import chat, documents, openai_compat
+from app.api import admin, chat, documents, openai_compat
 from app.services.vector_store import ensure_collection
 
 app = FastAPI(
@@ -20,6 +20,7 @@ app.add_middleware(
 app.include_router(chat.router)
 app.include_router(documents.router)
 app.include_router(openai_compat.router)
+app.include_router(admin.router)
 
 
 @app.on_event("startup")

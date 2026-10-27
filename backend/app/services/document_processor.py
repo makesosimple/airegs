@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os
 import uuid
 from datetime import datetime
@@ -107,6 +108,7 @@ def prepare_document_metadata(
     doc_type: DocumentType,
     title: str | None = None,
     date: datetime | None = None,
+    url: str | None = None,
 ) -> dict:
     """Doküman metadata'sını hazırlar."""
     return {
@@ -117,4 +119,5 @@ def prepare_document_metadata(
         "doc_type": doc_type.value,
         "date": (date or datetime.now()).isoformat(),
         "created_at": datetime.now().isoformat(),
+        "url": url or "",
     }

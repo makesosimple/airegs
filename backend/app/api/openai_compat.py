@@ -2,6 +2,7 @@
 OpenAI-compatible /v1/chat/completions endpoint.
 Open WebUI bu endpoint üzerinden AIRegs RAG pipeline'ını kullanır.
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -265,14 +266,7 @@ async def list_models():
                 "object": "model",
                 "created": 1700000000,
                 "owned_by": settings.app_name.lower(),
-                "name": f"{settings.app_name} (Claude Haiku)",
-            },
-            {
-                "id": "ito-qwen-rag",
-                "object": "model",
-                "created": 1700000000,
-                "owned_by": settings.app_name.lower(),
-                "name": f"{settings.app_name} (Lokal Qwen3-1.7B)",
+                "name": settings.app_name,
             },
         ],
     }

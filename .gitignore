@@ -46,3 +46,8 @@ backups/
 # Test artifacts
 test-results/
 tests/*.png
+
+# Local debug/turkify scripts (contain credentials)
+tests/auth_debug.html
+tests/turkify_final.py
+tests/turkify_openwebui.py

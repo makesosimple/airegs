@@ -19,11 +19,6 @@ LLM_PROFILES: dict[str, LLMProfile] = {
         api_key=settings.effective_llm_api_key,
         model=settings.llm_model,
     ),
-    "ito-qwen-rag": LLMProfile(
-        base_url="http://127.0.0.1:11434/v1",
-        api_key="ollama",
-        model="qwen3:1.7b",
-    ),
 }
 
 
@@ -61,9 +56,14 @@ def _build_messages(
     context_chunks: list[dict],
     conversation_history: list[dict] | None = None,
 ) -> list[dict]:
+    def _src_tag(c: dict) -> str:
+        url = c.get("url", "")
+        if url:
+            return f"[Kaynak: {c['title']} | URL: {url} | {c['doc_type']}]"
+        return f"[Kaynak: {c['title']} | {c['source']} | {c['doc_type']}]"
+
     context_text = "\n\n---\n\n".join(
-        f"[Kaynak: {c['title']} | {c['source']} | {c['doc_type']}]\n{c['text']}"
-        for c in context_chunks
+        f"{_src_tag(c)}\n{c['text']}" for c in context_chunks
     )
 
     messages = [

@@ -5,6 +5,7 @@ duyurular ve fuarlar içeriklerini tarar ve vektör veritabanına indeksler.
 
 Desteklenen içerik türleri: HTML, DOCX, PDF, JPG/PNG (OCR).
 """
+from __future__ import annotations
 
 import os
 import re
@@ -74,17 +75,43 @@ def save_state(state: dict):
         json.dump(state, f, ensure_ascii=False, indent=2)
 
 
-def fetch_page(url: str) -> BeautifulSoup | None:
+def _reset_session():
+    global session
     try:
-        logger.info(f"Sayfa indiriliyor: {url}")
-        resp = session.get(url, timeout=30)
-        resp.raise_for_status()
-        resp.encoding = resp.apparent_encoding or "utf-8"
-        time.sleep(CRAWL_DELAY)
-        return BeautifulSoup(resp.text, "html.parser")
-    except Exception as e:
-        logger.error(f"Sayfa indirilemedi: {url} -> {e}")
-        return None
+        session.close()
+    except Exception:
+        pass
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
+    })
+
+
+def fetch_page(url: str) -> BeautifulSoup | None:
+    last_err = None
+    for attempt in range(3):
+        try:
+            if attempt == 0:
+                logger.info(f"Sayfa indiriliyor: {url}")
+            else:
+                logger.info(f"Sayfa indiriliyor (retry {attempt}): {url}")
+            resp = session.get(url, timeout=30)
+            resp.raise_for_status()
+            resp.encoding = resp.apparent_encoding or "utf-8"
+            time.sleep(CRAWL_DELAY)
+            return BeautifulSoup(resp.text, "html.parser")
+        except Exception as e:
+            last_err = e
+            # SSL/connection hatalarında session'ı yenile ve bekle
+            if "SSL" in str(e) or "Connection" in str(e) or "Max retries" in str(e):
+                _reset_session()
+                time.sleep(5 * (attempt + 1))
+            else:
+                break
+    logger.error(f"Sayfa indirilemedi: {url} -> {last_err}")
+    return None
 
 
 def download_file(url: str, suffix: str) -> str | None:
@@ -324,6 +351,7 @@ def _index_text(title: str, text: str, doc_type: DocumentType, url: str, state: 
         source=DocumentSource.ITO,
         doc_type=doc_type,
         title=title,
+        url=url,
     )
 
     chunks = chunk_text(text)

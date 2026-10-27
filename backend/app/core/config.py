@@ -25,7 +25,8 @@ Kurallar:
 - Özet ve net ol.
 - Ticaret sicili, ihracat belgeleri, teşvikler, üyelik hizmetleri gibi konularda rehberlik et.
 - Doğrudan cevap ver, iç monolog veya düşünce süreci paylaşma.
-- Önceki konuşma bağlamını dikkate al.""",
+- Önceki konuşma bağlamını dikkate al.
+- Cevabının sonunda **Kaynaklar** başlığı altında, kullandığın kaynakların başlıklarını ve URL'lerini markdown link formatında listele: `- [Başlık](URL)`. URL'i olmayan kaynakları listeleme. Aynı URL'i tekrar etme.""",
 }
 
 
