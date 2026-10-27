@@ -25,13 +25,14 @@ AIRegs/
 
 - **Backend:** FastAPI + Qdrant + LM Studio (Qwen 3 14B / Qwen 3.5 35B-A3B) + Nomic Embed v1.5
 - **Frontend:** Open WebUI (Docker, port 3080) — RAG backend'e OpenAI-compatible API ile bağlı
-- **Veritabanı:** Qdrant (Docker, port 6333), doküman tracking şu an in-memory dict
+- **Veritabanı:** Qdrant (Docker, port 6333), doküman listesi Qdrant payload'larından türetiliyor
+- **Portlar (lokal):** 8000 başka projede (iventico) dolu → AIRegs backend 8010, İTO instance 8001 (`AIREGS_ENV_FILE=.env.ito`, `.env.ito`'da `MODEL_ID=ito-docs-rag`)
 - **Dil:** Türkçe birincil (prompt'lar, UI locale tr-TR, hata mesajları)
 
 ## Mimari
 
 ```
-Open WebUI (3080) → /v1/chat/completions → FastAPI Backend (8000)
+Open WebUI (3080) → /v1/chat/completions → FastAPI Backend (8010)
                                               ├── Qdrant vektör arama (6333)
                                               └── LM Studio LLM (1234)
 ```
@@ -43,7 +44,7 @@ Open WebUI sadece arayüz olarak kullanılıyor. RAG pipeline (chunking, vektör
 ```bash
 # Backend (venv aktif olmalı)
 cd backend && source venv/Scripts/activate
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8010 --reload
 
 # Docker servisleri (Qdrant + Open WebUI)
 docker compose up -d

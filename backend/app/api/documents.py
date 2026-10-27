@@ -10,16 +10,15 @@ from app.services.document_processor import (
     extract_text,
     prepare_document_metadata,
 )
+from app.services import vector_store
 from app.services.vector_store import (
     delete_document,
     get_collection_info,
+    get_document,
     index_document,
 )
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
-
-# Basit in-memory doküman kaydı (production'da DB kullanılır)
-_documents: dict[str, DocumentInfo] = {}
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "documents")
 
@@ -74,8 +73,6 @@ async def upload_document(
             status="indexed",
             created_at=datetime.now(),
         )
-        _documents[doc_info.id] = doc_info
-
         return doc_info
 
     except HTTPException:
@@ -86,23 +83,38 @@ async def upload_document(
 
 @router.get("", response_model=list[DocumentInfo])
 async def list_documents():
-    """Yüklenen dokümanları listeler."""
-    return list(_documents.values())
+    """İndekslenmiş dokümanları listeler (kaynak: Qdrant, restart'ta kaybolmaz)."""
+    docs = []
+    for d in vector_store.list_documents():
+        date = datetime.fromisoformat(d["date"]) if d.get("date") else None
+        docs.append(DocumentInfo(
+            id=d["id"],
+            filename=d.get("filename", ""),
+            title=d.get("title", ""),
+            source=d.get("source", DocumentSource.OTHER),
+            doc_type=d.get("doc_type", DocumentType.OTHER),
+            date=date,
+            chunk_count=d["chunk_count"],
+            status="indexed",
+            created_at=date or datetime.now(),
+        ))
+    return docs
 
 
 @router.delete("/{document_id}")
 async def remove_document(document_id: str):
     """Dokümanı ve indeksini siler."""
-    if document_id not in _documents:
+    doc = get_document(document_id)
+    if doc is None:
         raise HTTPException(status_code=404, detail="Doküman bulunamadı.")
 
     delete_document(document_id)
-    doc = _documents.pop(document_id)
 
     # Dosyayı da sil
-    file_path = os.path.join(UPLOAD_DIR, doc.filename)
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    if doc.get("filename"):
+        file_path = os.path.join(UPLOAD_DIR, doc["filename"])
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
     return {"message": "Doküman silindi.", "id": document_id}
 

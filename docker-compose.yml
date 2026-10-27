@@ -18,7 +18,7 @@ services:
       - open_webui_data:/app/backend/data
     environment:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - OPENAI_API_BASE_URL=http://host.docker.internal:8000/v1
+      - OPENAI_API_BASE_URL=http://host.docker.internal:8010/v1
       - OPENAI_API_KEY=airegs
       - WEBUI_AUTH=true
       - ENABLE_SIGNUP=true

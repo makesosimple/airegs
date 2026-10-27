@@ -133,6 +133,51 @@ def delete_document(document_id: str):
     )
 
 
+def _document_filter(document_id: str) -> Filter:
+    return Filter(
+        must=[FieldCondition(key="document_id", match=MatchValue(value=document_id))]
+    )
+
+
+def get_document(document_id: str) -> dict | None:
+    """Dokümanın ilk chunk'ının payload'ını döner, yoksa None."""
+    client = get_client()
+    points, _ = client.scroll(
+        collection_name=settings.collection_name,
+        scroll_filter=_document_filter(document_id),
+        limit=1,
+        with_vectors=False,
+    )
+    return points[0].payload if points else None
+
+
+def list_documents() -> list[dict]:
+    """Qdrant payload'larından doküman listesini çıkarır (chunk'ları document_id'ye göre gruplar)."""
+    client = get_client()
+    fields = ["document_id", "filename", "title", "source", "doc_type", "date", "url"]
+    docs: dict[str, dict] = {}
+    offset = None
+    while True:
+        points, offset = client.scroll(
+            collection_name=settings.collection_name,
+            limit=1000,
+            offset=offset,
+            with_payload=fields,
+            with_vectors=False,
+        )
+        for p in points:
+            doc_id = p.payload.get("document_id")
+            if not doc_id:
+                continue
+            if doc_id in docs:
+                docs[doc_id]["chunk_count"] += 1
+            else:
+                docs[doc_id] = {**p.payload, "id": doc_id, "chunk_count": 1}
+        if offset is None:
+            break
+    return list(docs.values())
+
+
 def get_collection_info() -> dict:
     """Collection bilgilerini döner."""
     client = get_client()

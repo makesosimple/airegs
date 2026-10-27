@@ -262,7 +262,7 @@ async def list_models():
         "object": "list",
         "data": [
             {
-                "id": "ito-docs-rag",
+                "id": settings.model_id,
                 "object": "model",
                 "created": 1700000000,
                 "owned_by": settings.app_name.lower(),

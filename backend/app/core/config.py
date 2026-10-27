@@ -58,6 +58,8 @@ class Settings(BaseSettings):
 
     # Instance branding
     app_name: str = "AIRegs"
+    # /v1/models'da Open WebUI'a gösterilen model id
+    model_id: str = "airegs-rag"
 
     @property
     def system_prompt(self) -> str:

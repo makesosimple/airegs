@@ -14,7 +14,7 @@ class LLMProfile(NamedTuple):
 
 # Ön tanımlı profiller — model adına göre backend seçer
 LLM_PROFILES: dict[str, LLMProfile] = {
-    "ito-docs-rag": LLMProfile(
+    settings.model_id: LLMProfile(
         base_url=settings.effective_llm_base_url,
         api_key=settings.effective_llm_api_key,
         model=settings.llm_model,
@@ -24,7 +24,7 @@ LLM_PROFILES: dict[str, LLMProfile] = {
 
 def get_profile(model_name: str) -> LLMProfile:
     """Model adına göre doğru LLM profilini döner, yoksa default."""
-    return LLM_PROFILES.get(model_name, LLM_PROFILES["ito-docs-rag"])
+    return LLM_PROFILES.get(model_name, LLM_PROFILES[settings.model_id])
 
 
 # Her profil için bir client instance cache
@@ -89,7 +89,7 @@ def generate_answer(
     question: str,
     context_chunks: list[dict],
     conversation_history: list[dict] | None = None,
-    model_name: str = "ito-docs-rag",
+    model_name: str = "",
 ) -> str:
     profile = get_profile(model_name)
     client = _get_client(profile)
@@ -108,7 +108,7 @@ def generate_answer_stream(
     question: str,
     context_chunks: list[dict],
     conversation_history: list[dict] | None = None,
-    model_name: str = "ito-docs-rag",
+    model_name: str = "",
 ) -> Generator[str, None, None]:
     profile = get_profile(model_name)
     client = _get_client(profile)
